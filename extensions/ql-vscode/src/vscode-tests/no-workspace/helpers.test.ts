@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import 'mocha';
-import { ExtensionContext, Memento, window } from 'vscode';
+import { Memento, window } from 'vscode';
 import * as yaml from 'js-yaml';
 import * as tmp from 'tmp';
 import * as path from 'path';
@@ -43,7 +43,7 @@ describe('helpers', () => {
     }
 
     function createInvocationRateLimiter<T>(funcIdentifier: string, func: () => Promise<T>): InvocationRateLimiter<T> {
-      return new InvocationRateLimiter(new MockExtensionContext(), funcIdentifier, func, s => createDate(s));
+      return new InvocationRateLimiter(new MockExtensionContext() as any, funcIdentifier, func, s => createDate(s));
     }
 
     it('initially invokes function', async () => {
@@ -145,7 +145,7 @@ describe('helpers', () => {
     expect(isLikelyDbLanguageFolder('dbnot-a-db')).to.be.false;
   });
 
-  class MockExtensionContext implements ExtensionContext {
+  class MockExtensionContext {
     subscriptions: { dispose(): unknown }[] = [];
     workspaceState: Memento = new MockMemento();
     globalState: Memento = new MockMemento();
@@ -181,6 +181,10 @@ describe('helpers', () => {
      */
     async update(key: string, value: any): Promise<void> {
       this.map.set(key, value);
+    }
+
+    get keys() {
+      return Array.from(this.map.keys());
     }
   }
 
