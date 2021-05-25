@@ -855,7 +855,8 @@
     "update-vscode": "node ./node_modules/vscode/bin/install",
     "format": "tsfmt -r && eslint src test --ext .ts,.tsx --fix",
     "lint": "eslint src test --ext .ts,.tsx --max-warnings=0",
-    "format-staged": "lint-staged"
+    "format-staged": "lint-staged",
+    "postinstall": "npx vscode-dts main && npx vscode-dts dev"
   },
   "dependencies": {
     "child-process-promise": "^2.2.1",
