@@ -932,6 +932,38 @@ export interface RunUpgradeResult {
   finalSha: string;
 }
 
+export interface NotebookProgram {
+  libraryPath: string[];
+  dbschemePath: string;
+  // The location for the query (for pack and relative imports)
+  fakeQueryPath: string;
+  cells: string[];
+}
+
+export interface CompileNotebookParams {
+  /**
+   * The options for compilation, if missing then the default options.
+   */
+  compilationOptions?: CompilationOptions;
+  /**
+   * The options for compilation that do not affect the result.
+   */
+  extraOptions?: ExtraOptions;
+  /**
+  * The ql program to check.
+  */
+  queryToCheck: NotebookProgram;
+  /**
+   * The way of compiling a query
+   */
+  target: CompilationTarget;
+  /**
+   * The path to write the qlo at.
+   */
+  resultPath?: string;
+}
+
+
 export interface RegisterDatabasesParams {
   databases: Dataset[];
 }
@@ -993,6 +1025,10 @@ export const compileQuery = new rpc.RequestType<WithProgressId<CompileQueryParam
  * Compile a dil query into a qlo
  */
 export const compileDilQuery = new rpc.RequestType<WithProgressId<CompileDilParams>, CheckQueryResult, void, void>('compilation/compileDilQuery');
+/**
+ * Compile notebook cells into a qlo
+ */
+export const compileNotebookCells = new rpc.RequestType<WithProgressId<CompileNotebookParams>, CheckQueryResult, void, void>('compilation/compileNotebookCells');
 
 
 /**
