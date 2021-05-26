@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/camelcase */
 import { TextDecoder } from 'util';
-import { CancellationToken, CancellationTokenSource, notebook, NotebookCell, NotebookCellData, NotebookCellKind, NotebookCellOutput, NotebookCellOutputItem, NotebookContentProvider, NotebookController, NotebookData, NotebookDocument, NotebookDocumentBackup, NotebookDocumentMetadata, Uri, workspace } from 'vscode';
+import { CancellationToken, notebook, NotebookCell, NotebookCellData, NotebookCellKind, NotebookCellOutput, NotebookCellOutputItem, NotebookContentProvider, NotebookController, NotebookData, NotebookDocument, NotebookDocumentBackup, NotebookDocumentMetadata, Uri, workspace } from 'vscode';
 import { CodeQLCliServer } from './cli';
 import { DatabaseItem } from './databases';
 import { QueryServerClient } from './queryserver-client';

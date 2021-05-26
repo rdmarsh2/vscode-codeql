@@ -48,7 +48,8 @@ interface NotebookProgram {
   program: messages.NotebookProgram;
 }
 
-interface NormalProgram {
+// does this really need to be exported? I only did it so run-queries.test.ts would compile
+export interface NormalProgram {
   type: 'Query';
   program: messages.QlProgram;
 }
@@ -163,6 +164,7 @@ export class QueryInfo {
           },
           queryToCheck: this.program.program,
           resultPath: this.compiledQueryPath,
+          target: { query: {} },
         };
         compiled = await qs.sendRequest(messages.compileNotebookCells, params, token, progress);
       } else {
@@ -718,7 +720,7 @@ export async function compileAndRunNotebookAgainstDatabase(
   }
 
   // Determine which query to run, based on the selection and the active editor.
-  const queryPath = baseUri?.path;
+  const queryPath = baseUri?.fsPath;
 
   // Get the workspace folder paths.
   const diskWorkspaceFolders = getOnDiskWorkspaceFolders();

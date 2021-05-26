@@ -121,7 +121,7 @@
         "displayName": "CodeQL Notebook Provider",
         "selector": [
           {
-            "filenamePattern": "*"
+            "filenamePattern": "*.qlnotebook"
           }
         ]
       }

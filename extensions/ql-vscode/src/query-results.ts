@@ -161,7 +161,8 @@ export function getQueryName(query: QueryInfo) {
   } else if (query.metadata?.name) {
     return query.metadata.name;
   } else {
-    return path.basename(query.program.queryPath);
+    // FIXME: handle notebook case properly
+    return path.basename((query.program.program as messages.QlProgram).queryPath);
   }
 }
 

@@ -957,6 +957,11 @@ export interface CompileNotebookParams {
    * The path to write the qlo at.
    */
   resultPath?: string;
+
+  /**
+   * The way of compiling a query
+   */
+  target: CompilationTarget;
 }
 
 
