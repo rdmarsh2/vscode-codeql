@@ -24,7 +24,7 @@ export class CodeQlNotebookProvider implements NotebookContentProvider {
           return new NotebookCellData(
             NotebookCellKind.Code,
             cell.source instanceof Array ? cell.source.join('\n') : cell.source,
-            content.metadata?.language_info?.name || 'python'
+            cell.metadata?.language_info?.name || 'QL'
           );
         }
         console.error('Unexpected cell:', cell);
