@@ -5,6 +5,7 @@ import {
   ExtensionContext,
   extensions,
   languages,
+  notebook,
   ProgressLocation,
   ProgressOptions,
   Uri,
@@ -69,6 +70,7 @@ import {
   ProgressUpdate
 } from './commandRunner';
 import { CodeQlStatusBarHandler } from './status-bar';
+import { CodeQlNotebookProvider } from './notebook';
 
 /**
  * extension.ts
@@ -745,6 +747,15 @@ async function activateWithInstalledDistribution(
     cancellable: true,
     title: 'Calculate AST'
   }));
+
+  logger.log('Registering notebook content provider.');
+  ctx.subscriptions.push(
+    notebook.registerNotebookContentProvider(
+      'codeql-notebook-provider',
+      new CodeQlNotebookProvider()
+    )
+  );
+
 
   commands.executeCommand('codeQLDatabases.removeOrphanedDatabases');
 

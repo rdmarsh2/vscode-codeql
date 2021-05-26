@@ -12,6 +12,7 @@
     "type": "git",
     "url": "https://github.com/github/vscode-codeql"
   },
+  "enableProposedApi": true,
   "engines": {
     "vscode": "^1.43.0"
   },
@@ -44,7 +45,8 @@
     "onCommand:codeQL.quickQuery",
     "onCommand:codeQL.restartQueryServer",
     "onWebviewPanel:resultsView",
-    "onFileSystem:codeql-zip-archive"
+    "onFileSystem:codeql-zip-archive",
+    "onNotebook:codeql-notebook-provider"
   ],
   "main": "./out/extension",
   "files": [
@@ -111,6 +113,17 @@
       {
         "language": "ql",
         "path": "./snippets.json"
+      }
+    ],
+    "notebooks": [
+      {
+        "viewType": "codeql-notebook-provider",
+        "displayName": "CodeQL Notebook Provider",
+        "selector": [
+          {
+            "filenamePattern": "*"
+          }
+        ]
       }
     ],
     "configuration": {
@@ -856,7 +869,9 @@
     "format": "tsfmt -r && eslint src test --ext .ts,.tsx --fix",
     "lint": "eslint src test --ext .ts,.tsx --max-warnings=0",
     "format-staged": "lint-staged",
-    "postinstall": "npx vscode-dts main && npx vscode-dts dev"
+    "download-api": "vscode-dts dev",
+    "postdownload-api": "vscode-dts main",
+    "postinstall": "npm run download-api"
   },
   "dependencies": {
     "child-process-promise": "^2.2.1",
@@ -941,6 +956,7 @@
     "typescript": "~3.8.3",
     "typescript-formatter": "^7.2.2",
     "vsce": "^1.65.0",
+    "vscode-dts": "^0.3.1",
     "vscode-test": "^1.4.0",
     "webpack": "^5.28.0",
     "webpack-cli": "^4.6.0"

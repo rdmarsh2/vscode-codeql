@@ -10,6 +10,7 @@ module.exports = {
     node: true,
     es6: true,
   },
+  ignorePatterns: ["**/vscode.d.ts", "**/vscode.proposed.d.ts"],
   extends: ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
   rules: {
     "@typescript-eslint/no-use-before-define": 0,
