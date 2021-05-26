@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/camelcase */
-import { NotebookContentProvider, workspace, NotebookData, Uri, NotebookDocumentBackup, NotebookCellData, NotebookCellKind, NotebookCellOutput, NotebookDocumentMetadata, NotebookDocument, CancellationToken } from 'vscode';
 import { TextDecoder } from 'util';
+import { CancellationToken, CancellationTokenSource, notebook, NotebookCell, NotebookCellData, NotebookCellKind, NotebookCellOutput, NotebookCellOutputItem, NotebookContentProvider, NotebookController, NotebookData, NotebookDocument, NotebookDocumentBackup, NotebookDocumentMetadata, Uri, workspace } from 'vscode';
+import { CodeQLCliServer } from './cli';
+import { DatabaseItem } from './databases';
+import { QueryServerClient } from './queryserver-client';
+import { compileAndRunNotebookAgainstDatabase } from './run-queries';
 
 export class CodeQlNotebookProvider implements NotebookContentProvider {
 
@@ -143,3 +147,44 @@ function serializeOutput(output: NotebookCellOutput): RawCellOutput {
     data: data
   };
 }
+
+export class CodeQlNotebookController {
+
+  private _controller: NotebookController;
+  private _cliServer: CodeQLCliServer;
+  private _queryServerClient: QueryServerClient;
+  private _dbm: DatabaseItem;
+
+  constructor(cliServer: CodeQLCliServer, queryServerClient: QueryServerClient, dbm: DatabaseItem) {
+    this._cliServer = cliServer;
+    this._queryServerClient = queryServerClient;
+    this._dbm = dbm;
+
+    this._controller = notebook.createNotebookController('codeql-notebook-controller', 'codeql-notebook-provider', 'codeql-notebook',
+      (cells: NotebookCell[], _notebook: NotebookDocument, _controller: NotebookController) => {
+        cells.forEach((cell, index) => {
+          const exec = this._controller.createNotebookCellExecutionTask(cell);
+          exec.executionOrder = index;
+          exec.start({ startTime: Date.now() });
+          compileAndRunNotebookAgainstDatabase(
+            this._cliServer, this._queryServerClient, this._dbm, [cell.document.getText()], _notebook.uri,
+            () => { null; }, // TODO: use a real ProgressCallback
+            exec.token
+          ).then((results) => {
+            exec.replaceOutput([new NotebookCellOutput(
+              [NotebookCellOutputItem.text(results.result.evaluationTime.toString())] // TODO: use a meaningful result here
+            )]);
+            exec.end({ success: true });
+          }, (reason) => {
+            exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.error(reason)])]);
+            exec.end({ success: false });
+          });
+        });
+      });
+  }
+
+  dispose(): void {
+    this._controller.dispose();
+  }
+}
+

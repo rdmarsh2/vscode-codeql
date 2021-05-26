@@ -70,7 +70,7 @@ import {
   ProgressUpdate
 } from './commandRunner';
 import { CodeQlStatusBarHandler } from './status-bar';
-import { CodeQlNotebookProvider } from './notebook';
+import { CodeQlNotebookController, CodeQlNotebookProvider } from './notebook';
 
 /**
  * extension.ts
@@ -755,6 +755,7 @@ async function activateWithInstalledDistribution(
       new CodeQlNotebookProvider()
     )
   );
+  ctx.subscriptions.push(new CodeQlNotebookController(cliServer, qs, dbm.currentDatabaseItem || dbm.databaseItems[0]));
 
 
   commands.executeCommand('codeQLDatabases.removeOrphanedDatabases');
