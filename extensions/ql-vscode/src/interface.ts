@@ -431,7 +431,7 @@ export class InterfaceManager extends DisposableObject {
       shouldKeepOldResultsWhileRendering,
       metadata: results.query.metadata,
       queryName: results.toString(),
-      queryPath: results.query.program.queryPath
+      queryPath: results.query.queryPath
     });
   }
 
@@ -464,7 +464,7 @@ export class InterfaceManager extends DisposableObject {
       pageSize: PAGE_SIZE.getValue(),
       numPages: numInterpretedPages(this._interpretation),
       queryName: this._displayedQuery.toString(),
-      queryPath: this._displayedQuery.query.program.queryPath
+      queryPath: this._displayedQuery.query.queryPath
     });
   }
 
@@ -544,7 +544,7 @@ export class InterfaceManager extends DisposableObject {
       shouldKeepOldResultsWhileRendering: false,
       metadata: results.query.metadata,
       queryName: results.toString(),
-      queryPath: results.query.program.queryPath
+      queryPath: results.query.queryPath
     });
   }
 

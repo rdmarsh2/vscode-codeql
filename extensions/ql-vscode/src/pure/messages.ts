@@ -954,10 +954,6 @@ export interface CompileNotebookParams {
   */
   queryToCheck: NotebookProgram;
   /**
-   * The way of compiling a query
-   */
-  target: CompilationTarget;
-  /**
    * The path to write the qlo at.
    */
   resultPath?: string;
