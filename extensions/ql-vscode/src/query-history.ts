@@ -369,9 +369,12 @@ export class QueryHistoryManager extends DisposableObject {
     if (!finalSingleItem) {
       throw new Error(NO_QUERY_SELECTED);
     }
+    if (finalSingleItem.query.program.type == 'Notebook') {
+      throw new Error('Notebook shouldn\'t fo into history');
+    }
 
     const textDocument = await vscode.workspace.openTextDocument(
-      vscode.Uri.file(finalSingleItem.query.program.queryPath)
+      vscode.Uri.file(finalSingleItem.query.program.program.queryPath)
     );
     const editor = await vscode.window.showTextDocument(
       textDocument,
