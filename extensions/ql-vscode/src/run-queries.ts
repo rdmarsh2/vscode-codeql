@@ -703,7 +703,7 @@ export async function compileAndRunQueryAgainstDatabase(
 }
 
 
-export async function compileAndNotebookAgainstDatabase(
+export async function compileAndRunNotebookAgainstDatabase(
   cliServer: cli.CodeQLCliServer,
   qs: qsClient.QueryServerClient,
   db: DatabaseItem,
