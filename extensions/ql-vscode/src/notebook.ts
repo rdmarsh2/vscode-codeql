@@ -3,6 +3,7 @@ import { TextDecoder } from 'util';
 import { CancellationToken, notebook, NotebookCell, NotebookCellData, NotebookCellKind, NotebookCellMetadata, NotebookCellOutput, NotebookCellOutputItem, NotebookContentProvider, NotebookController, NotebookData, NotebookDocument, NotebookDocumentBackup, NotebookDocumentMetadata, Uri, workspace } from 'vscode';
 import { CodeQLCliServer } from './cli';
 import { DatabaseItem } from './databases';
+import { transformBqrsResultSet } from './pure/bqrs-cli-types';
 import { QueryServerClient } from './queryserver-client';
 import { compileAndRunNotebookAgainstDatabase } from './run-queries';
 
@@ -29,7 +30,7 @@ export class CodeQlNotebookProvider implements NotebookContentProvider {
             NotebookCellKind.Code,
             cell.source instanceof Array ? cell.source.join('\n') : cell.source,
             cell.metadata?.language_info?.name || 'QL',
-            cell.outputs.map((output: CellDisplayOutput) => deserializeOutput(output)));
+            cell.outputs?.map((output: CellDisplayOutput) => deserializeOutput(output)));
         }
         console.error('Unexpected cell:', cell);
         return null;
@@ -80,7 +81,7 @@ export class CodeQlNotebookProvider implements NotebookContentProvider {
             }
           },
           cell_type: 'code',
-          outputs: cell.outputs.map(output => serializeOutput(output)),
+          outputs: cell.outputs?.map(output => serializeOutput(output)),
           execution_count: cell.metadata?.executionOrder
         });
       }
@@ -176,21 +177,41 @@ export class CodeQlNotebookController {
       (cells: NotebookCell[], _notebook: NotebookDocument, _controller: NotebookController) => {
         cells.forEach((cell, index) => {
           const exec = this._controller.createNotebookCellExecutionTask(cell);
-          exec.executionOrder = index;
-          exec.start({ startTime: Date.now() });
-          compileAndRunNotebookAgainstDatabase(
-            this._cliServer, this._queryServerClient, this._dbm, [cell.document.getText()], _notebook.uri,
-            () => { null; }, // TODO: use a real ProgressCallback
-            exec.token
-          ).then((results) => {
-            const resultPathOutputItem = NotebookCellOutputItem.text(results.query.resultsPaths.resultsPath);
-            resultPathOutputItem.mime = 'github.codeql-notebook/bqrs-ref';
-            exec.replaceOutput([new NotebookCellOutput([resultPathOutputItem])]);
-            exec.end({ success: true });
-          }, (reason) => {
-            exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.error(reason)])]);
+          try {
+            exec.start({ startTime: Date.now() });
+            exec.executionOrder = index;
+            compileAndRunNotebookAgainstDatabase(
+              this._cliServer, this._queryServerClient, this._dbm, [cell.document.getText()], _notebook.uri,
+              () => { null; }, // TODO: use a real ProgressCallback
+              exec.token
+            ).then(queryWithResults => {
+              this._cliServer.bqrsInfo(
+                queryWithResults.query.resultsPaths.resultsPath,
+                10 // TODO: how do we define the page size?
+              ).then(bqrsInfo => {
+                const schemas = bqrsInfo['result-sets'];
+                this._cliServer.bqrsDecode(
+                  queryWithResults.query.resultsPaths.resultsPath,
+                  schemas[0].name
+                ).then(chunk => {
+                  const results = {
+                    resultSet: { t: 'RawResultSet', ...transformBqrsResultSet(schemas[0], chunk) },
+                    queryWithResults: queryWithResults
+                  };
+                  //const resultPathOutputItem = NotebookCellOutputItem.text(results.query.resultsPaths.resultsPath, 'github.codeql-notebook/bqrs-ref');
+                  const resultPathOutputItem = NotebookCellOutputItem.text(JSON.stringify(results), 'github.codeql-notebook/bqrs-ref');
+                  exec.replaceOutput([new NotebookCellOutput([resultPathOutputItem])]);
+                  exec.end({ success: true });
+                });
+              });
+            }, (reason) => {
+              exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.error(reason)])]);
+              exec.end({ success: false });
+            });
+          } catch (err) {
+            exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.error(err.message)])]);
             exec.end({ success: false });
-          });
+          }
         });
       });
   }

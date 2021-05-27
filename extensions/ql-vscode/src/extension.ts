@@ -496,8 +496,7 @@ async function activateWithInstalledDistribution(
         helpers.showAndLogErrorMessage(
           'Jumping from a .qlref file to the .ql file it references is not '
           + 'supported with the CLI version you are running.\n'
-          + `Please upgrade your CLI to version ${
-          CliVersionConstraint.CLI_VERSION_WITH_RESOLVE_QLREF
+          + `Please upgrade your CLI to version ${CliVersionConstraint.CLI_VERSION_WITH_RESOLVE_QLREF
           } or later to use this feature.`);
       }
     }
@@ -759,6 +758,7 @@ async function activateWithInstalledDistribution(
   // TODO: reset this when a new database is selected?
   ctx.subscriptions.push(new CodeQlNotebookController(cliServer, qs, dbm.currentDatabaseItem || dbm.databaseItems[0]));
 
+  //const listener: NotebookRendererMessaging = notebook.createRendererMessaging('codeql-results-renderer');
 
   commands.executeCommand('codeQLDatabases.removeOrphanedDatabases');
 

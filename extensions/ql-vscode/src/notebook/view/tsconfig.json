@@ -4,15 +4,20 @@
     "moduleResolution": "node",
     "target": "es6",
     "outDir": "out",
-    "lib": ["es6", "dom"],
+    "lib": [
+      "es6",
+      "dom"
+    ],
     "jsx": "react",
     "sourceMap": true,
-    "rootDir": "..",
+    "rootDir": "../..",
     "strict": true,
     "noUnusedLocals": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "experimentalDecorators": true
   },
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }
