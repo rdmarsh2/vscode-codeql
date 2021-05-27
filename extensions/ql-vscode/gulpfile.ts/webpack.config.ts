@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as webpack from 'webpack';
 
-export const config: webpack.Configuration = {
+export const viewConfig: webpack.Configuration = {
   mode: 'development',
   entry: {
     resultsView: './src/view/results.tsx',
@@ -10,6 +10,75 @@ export const config: webpack.Configuration = {
   output: {
     path: path.resolve(__dirname, '..', 'out'),
     filename: '[name].js'
+  },
+  devtool: 'inline-source-map',
+  resolve: {
+    extensions: ['.js', '.ts', '.tsx', '.json'],
+    fallback: {
+      path: require.resolve('path-browserify')
+    }
+  },
+  module: {
+    rules: [
+      {
+        test: /\.(ts|tsx)$/,
+        loader: 'ts-loader',
+        options: {
+          configFile: 'src/view/tsconfig.json',
+        }
+      },
+      {
+        test: /\.less$/,
+        use: [
+          {
+            loader: 'style-loader'
+          },
+          {
+            loader: 'css-loader',
+            options: {
+              importLoaders: 1,
+              sourceMap: true
+            }
+          },
+          {
+            loader: 'less-loader',
+            options: {
+              javascriptEnabled: true,
+              sourceMap: true
+            }
+          }
+        ]
+      },
+      {
+        test: /\.css$/,
+        use: [
+          {
+            loader: 'style-loader'
+          },
+          {
+            loader: 'css-loader'
+          }
+        ]
+      }
+    ]
+  },
+  performance: {
+    hints: false
+  }
+};
+
+export const rendererConfig: webpack.Configuration = {
+  mode: 'development',
+  entry: {
+    notebookOutputView: './src/notebook/view/Cell.tsx',
+  },
+  output: {
+    path: path.resolve(__dirname, '..', 'out'),
+    filename: '[name].js',
+    libraryTarget: 'module'
+  },
+  experiments: {
+    outputModule: true
   },
   devtool: 'inline-source-map',
   resolve: {

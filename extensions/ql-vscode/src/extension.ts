@@ -755,6 +755,8 @@ async function activateWithInstalledDistribution(
       new CodeQlNotebookProvider()
     )
   );
+  // TODO: handle the case where we don't have an existing database at startup
+  // TODO: reset this when a new database is selected?
   ctx.subscriptions.push(new CodeQlNotebookController(cliServer, qs, dbm.currentDatabaseItem || dbm.databaseItems[0]));
 
 

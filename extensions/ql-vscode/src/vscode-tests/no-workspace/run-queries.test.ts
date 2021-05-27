@@ -5,8 +5,8 @@ import 'sinon-chai';
 import * as sinon from 'sinon';
 import * as chaiAsPromised from 'chai-as-promised';
 
-import { QueryInfo } from '../../run-queries';
-import { QlProgram, Severity, compileQuery } from '../../pure/messages';
+import { NormalProgram, QueryInfo } from '../../run-queries';
+import { Severity, compileQuery } from '../../pure/messages';
 import { DatabaseItem } from '../../databases';
 
 chai.use(chaiAsPromised);
@@ -86,7 +86,8 @@ describe('run-queries', () => {
 
   function createMockQueryInfo() {
     return new QueryInfo(
-      'my-program' as unknown as QlProgram,
+      'my-program' as unknown as NormalProgram,
+      'my-program',
       {
         contents: {
           datasetUri: 'file:///abc'

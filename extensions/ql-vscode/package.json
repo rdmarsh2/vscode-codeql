@@ -855,6 +855,16 @@
         "view": "codeQLDatabases",
         "contents": "Add a CodeQL database:\n[From a folder](command:codeQLDatabases.chooseDatabaseFolder)\n[From an archive](command:codeQLDatabases.chooseDatabaseArchive)\n[From a URL (as a zip file)](command:codeQLDatabases.chooseDatabaseInternet)\n[From LGTM](command:codeQLDatabases.chooseDatabaseLgtm)"
       }
+    ],
+    "notebookRenderer": [
+      {
+        "id": "codeql-results-renderer",
+        "displayName": "CodeQL Results Renderer",
+        "entrypoint": "./out/notebookOutputView.js",
+        "mimeTypes": [
+          "github.codeql-notebook/bqrs-ref"
+        ]
+      }
     ]
   },
   "scripts": {
@@ -921,6 +931,7 @@
     "@types/sinon-chai": "~3.2.3",
     "@types/through2": "^2.0.36",
     "@types/tmp": "^0.1.0",
+    "@types/vscode-notebook-renderer": "^1.57.2",
     "@types/unzipper": "~0.10.1",
     "@types/webpack": "^4.32.1",
     "@types/xml2js": "~0.4.4",

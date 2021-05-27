@@ -171,8 +171,11 @@ export class CodeQlNotebookController {
             () => { null; }, // TODO: use a real ProgressCallback
             exec.token
           ).then((results) => {
+            const resultPathOutputItem = NotebookCellOutputItem.text(results.query.resultsPaths.resultsPath);
+            resultPathOutputItem.mime = 'github.codeql-notebook/bqrs-ref';
             exec.replaceOutput([new NotebookCellOutput(
-              [NotebookCellOutputItem.text(results.result.evaluationTime.toString())] // TODO: use a meaningful result here
+              [resultPathOutputItem,
+                NotebookCellOutputItem.text(results.query.resultsPaths.resultsPath)] // TODO: use a meaningful result here
             )]);
             exec.end({ success: true });
           }, (reason) => {
@@ -186,5 +189,9 @@ export class CodeQlNotebookController {
   dispose(): void {
     this._controller.dispose();
   }
+}
+
+export class CodeQlBQRSRefRenderer {
+
 }
 
