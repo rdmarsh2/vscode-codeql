@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/camelcase */
 import { TextDecoder } from 'util';
-import { CancellationToken, Disposable, notebook, NotebookCell, NotebookCellData, NotebookCellKind, NotebookCellMetadata, NotebookCellOutput, NotebookCellOutputItem, NotebookContentProvider, NotebookController, NotebookData, NotebookDocument, NotebookDocumentBackup, NotebookDocumentMetadata, Uri, workspace } from 'vscode';
+import { CancellationToken, Disposable, notebook, NotebookCell, NotebookCellData, NotebookCellKind, NotebookCellMetadata, NotebookCellOutput, NotebookCellOutputItem, NotebookContentProvider, NotebookController, NotebookData, NotebookDocument, NotebookDocumentBackup, NotebookDocumentMetadata, NotebookRange, Uri, workspace } from 'vscode';
 import { CodeQLCliServer } from './cli';
 import { DatabaseItem, DatabaseManager } from './databases';
 import { jumpToLocation } from './interface-utils';
 import { Logger } from './logging';
 import { transformBqrsResultSet } from './pure/bqrs-cli-types';
 import { ViewSourceFileMsg } from './pure/interface-types';
+import { QueryResultType } from './pure/messages';
 import { QueryServerClient } from './queryserver-client';
 import { compileAndRunNotebookAgainstDatabase } from './run-queries';
 
@@ -178,40 +179,45 @@ export class CodeQlNotebookController {
 
     this._controller = notebook.createNotebookController('codeql-notebook-controller', 'codeql-notebook-provider', 'codeql-notebook',
       (cells: NotebookCell[], _notebook: NotebookDocument, _controller: NotebookController) => {
-        cells.forEach((cell, index) => {
+        cells.forEach(async (cell, index) => {
           const exec = this._controller.createNotebookCellExecutionTask(cell);
+          exec.executionOrder = index;
+          exec.start({ startTime: Date.now() });
+
           try {
-            exec.start({ startTime: Date.now() });
-            exec.executionOrder = index;
-            compileAndRunNotebookAgainstDatabase(
-              this._cliServer, this._queryServerClient, this._dbm, [cell.document.getText()], _notebook.uri,
+            const index = cell.index;
+            const prev_cells = _notebook.getCells(new NotebookRange(0, index + 1));
+            const cellContent = prev_cells.map(cell => {
+              if (cell.kind == NotebookCellKind.Code) {
+                return cell.document.getText();
+              } else {
+                return '';
+              }
+            });
+
+            const results = await compileAndRunNotebookAgainstDatabase(
+              this._cliServer, this._queryServerClient, this._dbm, cellContent, _notebook.uri,
               () => { null; }, // TODO: use a real ProgressCallback
               exec.token
-            ).then(queryWithResults => {
-              this._cliServer.bqrsInfo(
-                queryWithResults.query.resultsPaths.resultsPath,
-                10 // TODO: how do we define the page size?
-              ).then(bqrsInfo => {
-                const schemas = bqrsInfo['result-sets'];
-                this._cliServer.bqrsDecode(
-                  queryWithResults.query.resultsPaths.resultsPath,
-                  schemas[0].name
-                ).then(chunk => {
-                  const results = {
-                    resultSet: { t: 'RawResultSet', ...transformBqrsResultSet(schemas[0], chunk) },
-                    queryWithResults: queryWithResults
-                  };
-                  const resultPathOutputItem = NotebookCellOutputItem.text(JSON.stringify(results), 'github.codeql-notebook/bqrs-ref');
-                  exec.replaceOutput([new NotebookCellOutput([resultPathOutputItem])]);
-                  exec.end({ success: true });
-                });
-              });
-            }, (reason) => {
-              exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.error(reason)])]);
-              exec.end({ success: false });
-            });
-          } catch (err) {
-            exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.error(err.message)])]);
+            );
+
+            if (results.result.resultType != QueryResultType.SUCCESS) {
+              throw new Error(results.result.message || 'Query eval failed');
+            }
+
+            const bqrsInfo = await this._cliServer.bqrsInfo(results.query.resultsPaths.resultsPath, 10); // TODO: how do we define the page size?
+            const schemas = bqrsInfo['result-sets'];
+            const chunk = await this._cliServer.bqrsDecode(results.query.resultsPaths.resultsPath, schemas[0].name)
+
+            const allResults = {
+              resultSet: { t: 'RawResultSet', ...transformBqrsResultSet(schemas[0], chunk) },
+              queryWithResults: results
+            };
+            const resultPathOutputItem = NotebookCellOutputItem.text(JSON.stringify(allResults), 'github.codeql-notebook/bqrs-ref');
+            exec.replaceOutput([new NotebookCellOutput([resultPathOutputItem])]);
+            exec.end({ success: true });
+          } catch (reason) {
+            exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.error(reason)])]);
             exec.end({ success: false });
           }
         });
