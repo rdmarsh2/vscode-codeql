@@ -1,11 +1,6 @@
 import * as React from 'react';
-// import { useState, useEffect } from 'react';
 import * as Rdom from 'react-dom';
 import { ActivationFunction, CellInfo } from 'vscode-notebook-renderer';
-//import { RawTableResultSet } from '../../pure/interface-types';ƒ
-//import { QueryWithResults } from '../../run-queries';
-//import { RawTable } from '../../view/raw-results-table';
-
 
 export function Cell(props: any): JSX.Element {
   const results: { resultSet: any; queryWithResults: any } = JSON.parse(props.bqrs);
@@ -14,11 +9,14 @@ export function Cell(props: any): JSX.Element {
       return (<table key={idx}>
         <tr>
           <th>Label</th>
-          {Object.keys(rows[0]?.url).map((urlKey: string, urlKeyIdx: number) => {
+          {typeof rows[0] === 'object' ? Object.keys(rows[0]?.url).map((urlKey: string, urlKeyIdx: number) => {
             return (<th key={urlKeyIdx}>{urlKey}</th>);
-          })}
+          }) : null}
         </tr>
         {rows.map((row: Record<string, any>, index: number) => {
+          if (typeof row === 'string') {
+            return (<tr key={index}><td>{row}</td></tr>);
+          }
           return (<tr key={index}>
             <td>{row.label}</td>
             {Object.keys(row.url).map((key: string) => {
