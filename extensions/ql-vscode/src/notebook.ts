@@ -1,9 +1,12 @@
 /* eslint-disable @typescript-eslint/camelcase */
 import { TextDecoder } from 'util';
-import { CancellationToken, notebook, NotebookCell, NotebookCellData, NotebookCellKind, NotebookCellMetadata, NotebookCellOutput, NotebookCellOutputItem, NotebookContentProvider, NotebookController, NotebookData, NotebookDocument, NotebookDocumentBackup, NotebookDocumentMetadata, Uri, workspace } from 'vscode';
+import { CancellationToken, Disposable, notebook, NotebookCell, NotebookCellData, NotebookCellKind, NotebookCellMetadata, NotebookCellOutput, NotebookCellOutputItem, NotebookContentProvider, NotebookController, NotebookData, NotebookDocument, NotebookDocumentBackup, NotebookDocumentMetadata, Uri, workspace } from 'vscode';
 import { CodeQLCliServer } from './cli';
-import { DatabaseItem } from './databases';
+import { DatabaseItem, DatabaseManager } from './databases';
+import { jumpToLocation } from './interface-utils';
+import { Logger } from './logging';
 import { transformBqrsResultSet } from './pure/bqrs-cli-types';
+import { ViewSourceFileMsg } from './pure/interface-types';
 import { QueryServerClient } from './queryserver-client';
 import { compileAndRunNotebookAgainstDatabase } from './run-queries';
 
@@ -198,7 +201,6 @@ export class CodeQlNotebookController {
                     resultSet: { t: 'RawResultSet', ...transformBqrsResultSet(schemas[0], chunk) },
                     queryWithResults: queryWithResults
                   };
-                  //const resultPathOutputItem = NotebookCellOutputItem.text(results.query.resultsPaths.resultsPath, 'github.codeql-notebook/bqrs-ref');
                   const resultPathOutputItem = NotebookCellOutputItem.text(JSON.stringify(results), 'github.codeql-notebook/bqrs-ref');
                   exec.replaceOutput([new NotebookCellOutput([resultPathOutputItem])]);
                   exec.end({ success: true });
@@ -213,7 +215,8 @@ export class CodeQlNotebookController {
             exec.end({ success: false });
           }
         });
-      });
+      }
+    );
   }
 
   dispose(): void {
@@ -224,4 +227,15 @@ export class CodeQlNotebookController {
 export class CodeQlBQRSRefRenderer {
 
 }
+
+export function handleMsgFromNotebookView(msg: FromNotebookRendererMessage, dbm: DatabaseManager, logger: Logger): Disposable {
+  jumpToLocation(msg, dbm, logger);
+  return { dispose: () => { null; } };
+}
+
+export type FromNotebookRendererMessage = ViewSourceFileMsg & {
+  loc: Uri; databaseUri: string;
+}
+
+export type ToNotebookRendererMessage = {};
 

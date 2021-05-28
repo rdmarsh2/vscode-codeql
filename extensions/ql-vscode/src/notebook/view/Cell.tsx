@@ -1,46 +1,77 @@
 import * as React from 'react';
 import * as Rdom from 'react-dom';
-import { ActivationFunction, CellInfo } from 'vscode-notebook-renderer';
+import { ActivationFunction, CellInfo, RendererContext } from 'vscode-notebook-renderer';
 
 export function Cell(props: any): JSX.Element {
   const results: { resultSet: any; queryWithResults: any } = JSON.parse(props.bqrs);
   return <><div>
-    {results.resultSet.rows.map((rows: any, idx: number) => {
-      return (<table key={idx}>
+    <table className='vscode-codeql__result-table'>
+      <thead>
         <tr>
-          <th>Label</th>
-          {typeof rows[0] === 'object' ? Object.keys(rows[0]?.url).map((urlKey: string, urlKeyIdx: number) => {
-            return (<th key={urlKeyIdx}>{urlKey}</th>);
-          }) : null}
+          <th className='sort-none'>#</th>
+          <th className='sort-none'>Label</th>
         </tr>
-        {rows.map((row: Record<string, any>, index: number) => {
-          if (typeof row === 'string') {
-            return (<tr key={index}><td>{row}</td></tr>);
-          }
-          return (<tr key={index}>
-            <td>{row.label}</td>
-            {Object.keys(row.url).map((key: string) => {
-              return (<td key={key}>{JSON.stringify(row.url[key])}</td>);
-            })}
-          </tr>
-          );
+      </thead>
+      <tbody>
+        {results.resultSet.rows.map((rows: any, idx: number) => {
+          console.log(rows);
+          return rows.map((row: any, index: number) => {
+            console.log(row);
+            if (
+              typeof row === 'string'
+              || typeof row === 'number'
+              || typeof row === 'boolean'
+            ) {
+              return (<tr key={index}>
+                <td>{(idx + 1) * rows.length + index}</td>
+                <td>{row.toString()}</td>
+              </tr>);
+            }
+            if (row.url) {
+              return (<tr key={index}>
+                <td>{(idx + 1) * rows.length + index}</td>
+                <td>
+                  <a href={row.url.uri}
+                    className="vscode-codeql__result-table-location-link"
+                    title={row.label}
+                    onClick={() => { jumpTo(row.url, results.queryWithResults.database.databaseUri, props.context); }}
+                  >{row.label}</a>
+                </td>
+              </tr>);
+            }
+            return (<tr key={index}>
+              <td>{(idx + 1) * rows.length + index}</td>
+              <td>{row.label}</td>
+            </tr>);
+          });
         })}
-      </table>);
-    })}
+      </tbody>
+    </table>
   </div></>;
 }
 
-function renderOutput(cellInfo: CellInfo) {
-  Rdom.render(
-    <Cell bqrs={cellInfo.text()} />,
-    cellInfo.element,
-  );
-  // TODO: how do we make this interactive?
+
+function jumpTo(loc: any, databaseUri: string, context: RendererContext<any>) {
+  context.postMessage ? context.postMessage({
+    t: 'FromNotebookRendererMessage',
+    loc: loc,
+    databaseUri: databaseUri
+  }) : null;
 }
 
-export const activate: ActivationFunction = () => ({
+function renderOutput(cellInfo: CellInfo, context: RendererContext<any>) {
+  Rdom.render(
+    <Cell bqrs={cellInfo.text()} context={context} />,
+    cellInfo.element,
+  );
+}
+
+export const activate: ActivationFunction<any> = (context: RendererContext<any>) => ({
   renderCell: (_id, cellInfo: CellInfo) => {
-    renderOutput(cellInfo);
+    renderOutput(cellInfo, context);
+    context.onDidReceiveMessage ? context.onDidReceiveMessage((e: any) => {
+      console.log(e);
+    }) : null;
   }
 });
 
