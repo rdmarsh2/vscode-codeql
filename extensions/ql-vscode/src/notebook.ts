@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/camelcase */
 import { TextDecoder } from 'util';
-import { CancellationToken, notebook, NotebookCell, NotebookCellData, NotebookCellKind, NotebookCellOutput, NotebookCellOutputItem, NotebookContentProvider, NotebookController, NotebookData, NotebookDocument, NotebookDocumentBackup, NotebookDocumentMetadata, Uri, workspace } from 'vscode';
+import { CancellationToken, notebook, NotebookCell, NotebookCellData, NotebookCellKind, NotebookCellOutput, NotebookCellOutputItem, NotebookContentProvider, NotebookController, NotebookData, NotebookDocument, NotebookDocumentBackup, NotebookDocumentMetadata, NotebookRange, Uri, workspace } from 'vscode';
 import { CodeQLCliServer } from './cli';
 import { DatabaseItem } from './databases';
+import { QueryResultType } from './pure/messages';
 import { QueryServerClient } from './queryserver-client';
 import { compileAndRunNotebookAgainstDatabase } from './run-queries';
 
@@ -162,15 +163,32 @@ export class CodeQlNotebookController {
 
     this._controller = notebook.createNotebookController('codeql-notebook-controller', 'codeql-notebook-provider', 'codeql-notebook',
       (cells: NotebookCell[], _notebook: NotebookDocument, _controller: NotebookController) => {
-        cells.forEach((cell, index) => {
+        cells.forEach(async (cell, index) => {
           const exec = this._controller.createNotebookCellExecutionTask(cell);
           exec.executionOrder = index;
           exec.start({ startTime: Date.now() });
-          compileAndRunNotebookAgainstDatabase(
-            this._cliServer, this._queryServerClient, this._dbm, [cell.document.getText()], _notebook.uri,
-            () => { null; }, // TODO: use a real ProgressCallback
-            exec.token
-          ).then((results) => {
+
+          try {
+
+            const index = cell.index;
+            const prev_cells = _notebook.getCells(new NotebookRange(0, index + 1));
+            const cellContent = prev_cells.map(cell => {
+              if (cell.kind == NotebookCellKind.Code) {
+                return cell.document.getText();
+              } else {
+                return '';
+              }
+            });
+
+
+            const results = await compileAndRunNotebookAgainstDatabase(
+              this._cliServer, this._queryServerClient, this._dbm, cellContent, _notebook.uri,
+              () => { null; }, // TODO: use a real ProgressCallback
+              exec.token
+            );
+            if (results.result.resultType != QueryResultType.SUCCESS) {
+              throw new Error(results.result.message || 'Query eval failed');
+            }
             const resultPathOutputItem = NotebookCellOutputItem.text(results.query.resultsPaths.resultsPath);
             resultPathOutputItem.mime = 'github.codeql-notebook/bqrs-ref';
             exec.replaceOutput([new NotebookCellOutput(
@@ -178,10 +196,11 @@ export class CodeQlNotebookController {
                 NotebookCellOutputItem.text(results.query.resultsPaths.resultsPath)] // TODO: use a meaningful result here
             )]);
             exec.end({ success: true });
-          }, (reason) => {
+
+          } catch (reason) {
             exec.replaceOutput([new NotebookCellOutput([NotebookCellOutputItem.error(reason)])]);
             exec.end({ success: false });
-          });
+          }
         });
       });
   }
