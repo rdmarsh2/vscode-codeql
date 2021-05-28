@@ -1,26 +1,28 @@
+import * as os from 'os';
+import * as path from 'path';
 import {
   CancellationToken,
   commands,
-  Disposable,
-  ExtensionContext,
+  Disposable, env, ExtensionContext,
   extensions,
   languages,
   notebook,
   ProgressLocation,
   ProgressOptions,
   Uri,
-  window as Window,
-  env,
-  window
+  window as Window, window
 } from 'vscode';
 import { LanguageClient } from 'vscode-languageclient';
-import * as os from 'os';
-import * as path from 'path';
 import { testExplorerExtensionId, TestHub } from 'vscode-test-adapter-api';
-
-import { AstViewer } from './astViewer';
 import * as archiveFilesystemProvider from './archive-filesystem-provider';
-import { CodeQLCliServer, CliVersionConstraint } from './cli';
+import { AstViewer } from './astViewer';
+import { CliVersionConstraint, CodeQLCliServer } from './cli';
+import {
+  commandRunner,
+  commandRunnerWithProgress,
+  ProgressCallback, ProgressUpdate, withProgress
+} from './commandRunner';
+import { CompareInterfaceManager } from './compare/compare-interface';
 import {
   CliConfigListener,
   DistributionConfigListener,
@@ -28,14 +30,12 @@ import {
   QueryHistoryConfigListener,
   QueryServerConfigListener
 } from './config';
-import * as languageSupport from './languageSupport';
+import {
+  TemplatePrintAstProvider, TemplateQueryDefinitionProvider,
+  TemplateQueryReferenceProvider
+} from './contextual/templateProvider';
 import { DatabaseManager } from './databases';
 import { DatabaseUI } from './databases-ui';
-import {
-  TemplateQueryDefinitionProvider,
-  TemplateQueryReferenceProvider,
-  TemplatePrintAstProvider
-} from './contextual/templateProvider';
 import {
   DEFAULT_DISTRIBUTION_VERSION_RANGE,
   DistributionKind,
@@ -47,30 +47,24 @@ import {
   GithubRateLimitedError
 } from './distribution';
 import * as helpers from './helpers';
-import { assertNever } from './pure/helpers-pure';
 import { spawnIdeServer } from './ide-server';
 import { InterfaceManager } from './interface';
 import { WebviewReveal } from './interface-utils';
+import * as languageSupport from './languageSupport';
 import { ideServerLogger, logger, queryServerLogger } from './logging';
+import { CodeQlNotebookController, CodeQlNotebookProvider, FromNotebookRendererMessage, handleMsgFromNotebookView, ToNotebookRendererMessage } from './notebook';
+import { gatherQlFiles } from './pure/files';
+import { assertNever } from './pure/helpers-pure';
 import { QueryHistoryManager } from './query-history';
 import { CompletedQuery } from './query-results';
 import * as qsClient from './queryserver-client';
 import { displayQuickQuery } from './quick-query';
 import { compileAndRunQueryAgainstDatabase, tmpDirDisposal } from './run-queries';
+import { CodeQlStatusBarHandler } from './status-bar';
+import { initializeTelemetry } from './telemetry';
 import { QLTestAdapterFactory } from './test-adapter';
 import { TestUIService } from './test-ui';
-import { CompareInterfaceManager } from './compare/compare-interface';
-import { gatherQlFiles } from './pure/files';
-import { initializeTelemetry } from './telemetry';
-import {
-  commandRunner,
-  commandRunnerWithProgress,
-  ProgressCallback,
-  withProgress,
-  ProgressUpdate
-} from './commandRunner';
-import { CodeQlStatusBarHandler } from './status-bar';
-import { CodeQlNotebookController, CodeQlNotebookProvider } from './notebook';
+
 
 /**
  * extension.ts
@@ -496,8 +490,7 @@ async function activateWithInstalledDistribution(
         helpers.showAndLogErrorMessage(
           'Jumping from a .qlref file to the .ql file it references is not '
           + 'supported with the CLI version you are running.\n'
-          + `Please upgrade your CLI to version ${
-          CliVersionConstraint.CLI_VERSION_WITH_RESOLVE_QLREF
+          + `Please upgrade your CLI to version ${CliVersionConstraint.CLI_VERSION_WITH_RESOLVE_QLREF
           } or later to use this feature.`);
       }
     }
@@ -759,6 +752,8 @@ async function activateWithInstalledDistribution(
   // TODO: reset this when a new database is selected?
   ctx.subscriptions.push(new CodeQlNotebookController(cliServer, qs, dbm.currentDatabaseItem || dbm.databaseItems[0]));
 
+  const listener = notebook.createRendererMessaging<ToNotebookRendererMessage, FromNotebookRendererMessage>('codeql-results-renderer');
+  listener.onDidReceiveMessage((e) => handleMsgFromNotebookView(e.message, dbm, logger));
 
   commands.executeCommand('codeQLDatabases.removeOrphanedDatabases');
 
